@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burn Monster</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+
+const spriteImages = [];
+const totalSprites = 6;
+let spritesLoaded = 0;
+
+for (let i = 1; i <= totalSprites; i++) {
+    const img = new Image();
+    img.src = 'assets/inimigos/Caveira/sprite' + i + '.png';
+    img.onload = function() {
+        spritesLoaded++;
+        if (spritesLoaded === totalSprites) {
+            console.log("All sprites are loaded!");
+        }
+    };
+    spriteImages.push(img);
+}
+
+        const ctx = canvas.getContext('2d');
+
+        let inimigos = [];
+        let projeteis = [];
+        let dano = 0;
+		let inimigosDestruidos = 0;
+
+        let inicioArrasto = { x: 0, y: 0 };
+
+        
+function criarInimigo() {
+    const inimigo = {
+        x: Math.random() * canvas.width,
+        y: 0,
+        width: 50,
+        height: 50,
+        speed: 2,
+        spriteIndex: 0
+    };
+    inimigos.push(inimigo);
+}
+
+            const inimigo = {
+                x: Math.random() * canvas.width,
+                y: 0,
+                width: 50,
+                height: 50,
+                speed: 2
+            };
+            inimigos.push(inimigo);
+
+		canvas.addEventListener('mousedown', function(event) {
+			inicioArrasto.x = event.clientX - canvas.offsetLeft;
+			inicioArrasto.y = event.clientY - canvas.offsetTop;
+			
+			projetilAtual = {
+				x: inicioArrasto.x,
+				y: inicioArrasto.y,
+				speedX: 0,
+				speedY: 0,
+				width: 10,  // Tamanho inicial
+				height: 10,
+				ricochetes: 0
+			};
+		});
+
+        canvas.addEventListener('mouseup', function(event) {
+            const fimArrasto = {
+                x: event.clientX - canvas.offsetLeft,
+                y: event.clientY - canvas.offsetTop
+            };
+
+            const dx = fimArrasto.x - inicioArrasto.x;
+            const dy = fimArrasto.y - inicioArrasto.y;
+
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            const speed = 5; // velocidade do projétil
+			const projétil = {
+				x: inicioArrasto.x,
+				y: inicioArrasto.y,
+				speedX: (dx / dist) * speed,
+				speedY: (dy / dist) * speed,
+				ricochetes: 0  // Inicialmente, o projétil não ricocheteou
+			};
+            projeteis.push(projétil);
+        });
+
+        function verificarColisao() {
+            for (let i = inimigos.length - 1; i >= 0; i--) {
+                if (inimigos[i].y > canvas.height) {
+                    dano++;
+                    inimigos.splice(i, 1);
+                    continue;
+                }
+
+                for (let j = projeteis.length - 1; j >= 0; j--) {
+if (inimigos[i].x < projeteis[j].x + 10 &&
+    inimigos[i].x + 50 > projeteis[j].x &&
+    inimigos[i].y < projeteis[j].y + 10 &&
+    inimigos[i].y + 50 > projeteis[j].y) {
+
+    inimigos.splice(i, 1);
+    projeteis.splice(j, 1);
+    inimigosDestruidos++; 
+    break;
+}
+                }
+            }
+        }
+
+        function atualizar() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Atualizar a posição dos inimigos
+            for (let inimigo of inimigos) {
+                inimigo.y += inimigo.speed;
+            }
+
+const SPRITE_CHANGE_INTERVAL = 5;  // Maior valor = animação mais lenta.
+
+// Renderizar inimigos
+for (let inimigo of inimigos) {
+    if (!inimigo.renderCounter) {
+        inimigo.renderCounter = 0;  // Inicializar o contador se ele não existir.
+    }
+    
+    if (spriteImages[inimigo.spriteIndex] && spriteImages[inimigo.spriteIndex].complete) {
+        ctx.drawImage(spriteImages[inimigo.spriteIndex], inimigo.x, inimigo.y, inimigo.width, inimigo.height);
+        
+        inimigo.renderCounter++;
+        
+        if (inimigo.renderCounter >= SPRITE_CHANGE_INTERVAL) {
+            inimigo.spriteIndex = (inimigo.spriteIndex + 1) % totalSprites;  // Cycle through sprites
+            inimigo.renderCounter = 0;  // Reset counter
+        }
+    }
+}
+
+			// Atualizar e renderizar projéteis
+			for (let i = projeteis.length - 1; i >= 0; i--) {
+				ctx.fillRect(projeteis[i].x, projeteis[i].y, 10, 10);
+				projeteis[i].y += projeteis[i].speedY;
+				projeteis[i].x += projeteis[i].speedX;
+
+				if ((projeteis[i].x < 0 || projeteis[i].x > canvas.width) && projeteis[i].ricochetes < 1) {
+					projeteis[i].speedX = -projeteis[i].speedX;
+					projeteis[i].ricochetes++;
+				} else if (projeteis[i].ricochetes >= 1 && (projeteis[i].x < 0 || projeteis[i].x > canvas.width)) {
+					projeteis.splice(i, 1);
+					continue;  // Pule o resto do loop para este projétil, já que ele foi removido
+				}
+
+				if (projeteis[i].y < 0) {  // Se o projétil atingir a linha superior
+					projeteis.splice(i, 1);
+					continue;  // Pule o resto do loop para este projétil, já que ele foi removido
+				}
+			}
+
+            verificarColisao();
+
+            ctx.fillStyle = 'red';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Dano: ${dano}`, 10, 30);
+			ctx.fillText(`Dano: ${dano}`, 10, 30);
+ctx.fillText(`Inimigos Destruídos: ${inimigosDestruidos}`, 10, 60); 
+
+            requestAnimationFrame(atualizar);
+        }
+
+        setInterval(criarInimigo, 2000);
+        atualizar();
+    </script>
+</body>
+</html>
